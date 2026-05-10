@@ -8,3 +8,13 @@ for i in range(1, len(student_scores) - 1):
 
 
 print(max)
+
+# Gauss challenge
+# Work out the total numbers between 1 and 100, inclusive of both 1 and 100
+
+sum = 0
+
+for i in range(1, 101):
+    sum += i
+
+print(sum)
