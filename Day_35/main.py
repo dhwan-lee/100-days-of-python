@@ -1,8 +1,9 @@
 import requests
+import os
 
 MY_LAT = 49.248810
 MY_LON = -122.980507
-MY_API_KEY = "asdasdadadd"
+MY_API_KEY = os.environ.get("OWM_MY_API_KEY")
 weather_parameters = {
     "lat": MY_LAT,
     "lon": MY_LON,
