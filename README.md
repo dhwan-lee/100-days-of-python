@@ -41,4 +41,6 @@ The repository is organized by daily modules, tracking the shift from local logi
 ├── Day_45/                  # Web Scraping with BeautifulSoup (Static Elements)
 ├── Day_46/                  # Billboard Hot 100 Data Extraction Pipeline
 ├── Day_47/                  # Automated Amazon Price Tracker & Email Dispatcher
-└── Day_48/                  # Browser Automation & Dynamic Upgrades with Selenium
+├── Day_48/                  # Browser Automation & Dynamic Upgrades with Selenium
+└── Day_49/                  # Automated Gym Class Booking Engine with Session Persistence
+
