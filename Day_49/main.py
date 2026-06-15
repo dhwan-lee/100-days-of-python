@@ -3,6 +3,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import time
 
 chrome_options = webdriver.ChromeOptions()
@@ -24,22 +25,46 @@ driver.get(GYM_URL)
 
 wait = WebDriverWait(driver, 2)
 
-login_btn = wait.until(ec.element_to_be_clickable((By.ID, "login-button")))
-login_btn.click()
+# ---------------- Network Resilience ----------------
 
-email = wait.until(ec.presence_of_element_located((By.ID, "email-input")))
-email.clear()
-email.send_keys(ACCOUNT_EMAIL)
+# Simple retry wrapper
+def retry(func, retries=7, description=None):
+    for i in range(retries):
+        print(f"Trying {description}. Attempt: {i + 1}")
+        try:
+            return func()
+        except TimeoutException:
+            if i == retries - 1:
+                raise
+            time.sleep(1)
 
-password = wait.until(ec.presence_of_element_located((By.ID, "password-input")))
-password.clear()
-password.send_keys(ACCOUNT_PASSWORD)
+# Function to perform entire login process with retry
+def login():
+    login_btn = wait.until(ec.element_to_be_clickable((By.ID, "login-button")))
+    login_btn.click()
 
-submit_btn = wait.until(ec.element_to_be_clickable((By.ID, "submit-button")))
-submit_btn.click()
+    email_input = wait.until(ec.presence_of_element_located((By.ID, "email-input")))
+    email_input.clear()
+    email_input.send_keys(ACCOUNT_EMAIL)
 
-# Wait for schedule page to load
-wait.until(ec.presence_of_element_located((By.ID, "schedule-page")))
+    password_input = driver.find_element(By.ID, "password-input")
+    password_input.clear()
+    password_input.send_keys(ACCOUNT_PASSWORD)
+
+    submit_btn = driver.find_element(By.ID, "submit-button")
+    submit_btn.click()
+
+    wait.until(ec.presence_of_element_located((By.ID, "schedule-page")))
+
+
+# Function to book a class process that checks if the button text changed with retry
+def book_class(booking_button):
+    booking_button.click()
+    # Wait for button state to change - will time out if booking failed
+    wait.until(lambda d: booking_button.text == "Booked")
+
+# Put the entire login flow into the retry-wrapper
+retry(login, description="login")
 
 class_cards = driver.find_elements(By.CSS_SELECTOR, value="div[id^='class-card-']")
 
@@ -86,6 +111,7 @@ for card in class_cards:
                 booked_count += 1
                 # Add detailed class info
                 processed_classes.append(f"[New Booking] {class_info}")
+                time.sleep(0.5)
             elif button.text == "Join Waitlist":
                 # Join waitlist if class is full
                 button.click()
@@ -96,15 +122,56 @@ for card in class_cards:
                 time.sleep(0.5)
 
 # Print summary
-print("\n--- BOOKING SUMMARY ---")
-print(f"Classes booked: {booked_count}")
-print(f"Waitlists joined: {waitlist_count}")
-print(f"Already booked/waitlisted: {already_booked_count}")
-print(f"Total Tuesday 6pm classes processed: {booked_count + waitlist_count + already_booked_count}")
+# print("\n--- BOOKING SUMMARY ---")
+# print(f"Classes booked: {booked_count}")
+# print(f"Waitlists joined: {waitlist_count}")
+# print(f"Already booked/waitlisted: {already_booked_count}")
+# print(f"Total Tuesday 6pm classes processed: {booked_count + waitlist_count + already_booked_count}")
 
-# Print detailed class list
-print("\n--- DETAILED CLASS LIST ---")
-for class_detail in processed_classes:
-    print(f"  • {class_detail}")
+total_booked = already_booked_count + booked_count + waitlist_count
+print(f"\n--- Total Tuesday/Thursday 6pm classes: {total_booked} ---")
+print("\n--- VERIFYING ON MY BOOKINGS PAGE ---")
 
-# driver.quit()
+# Function to navigate to my bookings with retry
+def get_my_bookings():
+    my_bookings_link = wait.until(ec.element_to_be_clickable((By.ID, "my-bookings-link")))
+    my_bookings_link.click()
+    # Wait for page to load - will time out if navigation failed
+    wait.until(ec.presence_of_element_located((By.ID, "my-bookings-page")))
+
+    cards = driver.find_elements(By.CSS_SELECTOR, "div[id*='card-']")
+
+    # Ensure we actually found cards - if empty, the page might not have loaded
+    if not cards:
+        raise TimeoutException("No booking cards found - page may not have loaded")
+    return cards
+
+
+# Put navigation to the Bookings page and get cards in the retry wrapper
+all_cards = retry(get_my_bookings, description="Get my bookings")
+
+verified_count = 0
+
+for card in all_cards:
+    try:
+        when_paragraph = card.find_element(By.XPATH, ".//p[strong[text()='When:']]")
+        when_text = when_paragraph.text
+
+        if ("Tue" in when_text or "Thu" in when_text) and "6:00 PM" in when_text:
+            class_name = card.find_element(By.TAG_NAME, "h3").text
+            print(f"  ✓ Verified: {class_name}")
+            verified_count += 1
+    except NoSuchElementException:
+        # Skip if no "When:" text found (not a booking card)
+        pass
+
+print(f"\n--- VERIFICATION RESULT ---")
+print(f"Expected: {total_booked} bookings")
+print(f"Found: {verified_count} bookings")
+
+if total_booked == verified_count:
+    print("✅ SUCCESS: All bookings verified!")
+else:
+    print(f"❌ MISMATCH: Missing {total_booked - verified_count} bookings")
+
+driver.quit()
