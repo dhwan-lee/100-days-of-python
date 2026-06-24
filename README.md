@@ -42,7 +42,7 @@ The repository is organized by daily modules, tracking the shift from local logi
 ├── Day_46/                  # Billboard Hot 100 Data Extraction Pipeline
 ├── Day_47/                  # Automated Amazon Price Tracker & Email Dispatcher
 ├── Day_48/                  # Browser Automation & Dynamic Upgrades with Selenium
-├── Day_49/              # Automated Gym Class Booking Engine with Session Persistence
-├── Day_50/              # Auto-Tinder Swiping Bot (Selenium Element Interaction)
-├── Day_51/              # Internet Speed Twitter/X Complaint Bot (Selenium Flow Control)
-└── Day_52/              # Instagram Follower Bot (Share-a-Naan Automation & Scrolling)
+├── Day_49/                  # Automated Gym Class Booking Engine with Session Persistence
+├── Day_50/                  # Auto-Tinder Swiping Bot (Selenium Element Interaction)
+├── Day_51/                  # Internet Speed Twitter/X Complaint Bot (Selenium Flow Control)
+└── Day_52/                  # Instagram Follower Bot (Share-a-Naan Automation & Scrolling)
